@@ -11,6 +11,11 @@ from oauthlib.oauth2.rfc6749.grant_types import AuthorizationCodeGrant
 from oauthlib.oauth2.rfc6749.grant_types import authorization_code
 from oauthlib.oauth2.rfc6749.tokens import BearerToken
 
+try:
+    from urllib import urlencode
+except: # For Python 3
+    from urllib.parse import urlencode
+
 from ....unittest import TestCase
 
 
@@ -324,3 +329,17 @@ class AuthorizationCodeGrantTest(TestCase):
             authorization_code.code_challenge_method_s256("dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk",
                                                           "E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM")
         )
+
+    def test_validate_token_client_secret_in_query(self):
+        """Should have an error raised for sending client_secret in query
+        """
+        self.request.uri += '?client_secret=secret'
+        self.assertRaises(errors.InvalidRequestFatalError, self.auth.validate_token_request, self.request)
+    
+    def test_validate_token_code_verifier_in_query(self):
+        """Should have an error raised for sending_code verifier in query
+        """
+        self.request.uri += '?code_verifier=1234'
+        self.assertRaises(errors.InvalidRequestFatalError, self.auth.validate_token_request, self.request)
+
+

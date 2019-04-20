@@ -348,7 +348,7 @@ class AuthorizationCodeGrant(GrantTypeBase):
                 raise errors.InvalidRequestFatalError(description='Unable to parse query string', request=request)
             if param in duplicate_params:
                 raise errors.InvalidRequestFatalError(description='Duplicate %s parameter.' % param, request=request)
-
+            
         # REQUIRED. The client identifier as described in Section 2.2.
         # https://tools.ietf.org/html/rfc6749#section-2.2
         if not request.client_id:
@@ -389,6 +389,7 @@ class AuthorizationCodeGrant(GrantTypeBase):
         # response_types "code token", "code id_token", "code token id_token"
         elif not 'code' in request.response_type and request.response_type != 'none':
             raise errors.UnsupportedResponseTypeError(request=request)
+
 
         if not self.request_validator.validate_response_type(request.client_id,
                                                              request.response_type,
@@ -449,6 +450,18 @@ class AuthorizationCodeGrant(GrantTypeBase):
             if param in request.duplicate_params:
                 raise errors.InvalidRequestError(description='Duplicate %s parameter.' % param,
                                                  request=request)
+
+        # client_secret and code_verifier must not be in query string.
+        GET_PARAMS_NOT_ALLOWED = {
+            'client_secret': 'client_secret not allowed in query string', 
+            'code_verifier': 'code_verifier not allowed in query string',
+        }
+        query_params = dict(request.uri_query_params)
+        invalid_params = [k for k in GET_PARAMS_NOT_ALLOWED if k in query_params]
+
+        if invalid_params:
+            error_msg = ' and '.join([GET_PARAMS_NOT_ALLOWED[k] for k in invalid_params])
+            raise errors.InvalidRequestFatalError(description=error_msg, request=request)
 
         if self.request_validator.client_authentication_required(request):
             # If the client type is confidential or the client was issued client
